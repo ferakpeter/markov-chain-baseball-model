@@ -1,0 +1,28 @@
+{
+  "name": "markov-chain-baseball-model",
+  "version": "1.0.0",
+  "description": "Markov chain implementation with a state model for Baseball.",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/ferakpeter/markov-chain-baseball-model.git"
+  },
+  "keywords": [
+    "markov",
+    "chain",
+    "math",
+    "baseball",
+    "model",
+    "nodejs",
+    "javascript"
+  ],
+  "author": "Peter Ferak",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ferakpeter/markov-chain-baseball-model/issues"
+  },
+  "homepage": "https://github.com/ferakpeter/markov-chain-baseball-model#readme"
+}
