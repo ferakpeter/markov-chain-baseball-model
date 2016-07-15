@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Markov chain implementation with a state model for Baseball.",
   "main": "index.js",
+  "dependencies": {
+    "mathjs": "latest"
+  },
   "devDependencies" : {
     "mocha"  : "latest",
     "chai" : "latest"

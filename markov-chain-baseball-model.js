@@ -1,3 +1,4 @@
+var math = require('mathjs');
 
 //Average probabilities come from MajorLeagueBaseball, via http://www.uwosh.edu/faculty_staff/kuennene/Baseball.ppt
 //An average game is considered to have 5 runs
@@ -13,116 +14,137 @@ exports.assumptions = {
     maxAtBats: 18
 };
 
-// index [row, column]
-var row = 0;
-var column = 1;
+// Definition of all Markov transitions
+// runners [from state, to state]
+exports.advance = {
+  noout:
+    [
+      //homerun
+      { from: 0, to: 0, transition: this.assumptions.homerun, runs: 1 },
+      { from: 1, to: 0, transition: this.assumptions.homerun, runs: 2 },
+      { from: 2, to: 0, transition: this.assumptions.homerun, runs: 2 },
+      { from: 3, to: 0, transition: this.assumptions.homerun, runs: 2 },
+      { from: 12, to: 0, transition: this.assumptions.homerun, runs: 3 },
+      { from: 13, to: 0, transition: this.assumptions.homerun, runs: 3 },
+      { from: 23, to: 0, transition: this.assumptions.homerun, runs: 3 },
+      { from: 123, to: 0, transition: this.assumptions.homerun, runs: 4 },
+      //single
+      { from: 0, to: 1, transition: this.assumptions.single+this.assumptions.walk, runs: 0 },
+      { from: 1, to: 12, transition: 0.65*this.assumptions.single+this.assumptions.walk, runs: 0 },
+      { from: 1, to: 13, transition: 0.35*this.assumptions.single, runs: 0 },
+      { from: 2, to: 1, transition: 0.65*this.assumptions.single, runs: 1 },
+      { from: 2, to: 13, transition: 0.35*this.assumptions.single, runs: 0 },
+      { from: 3, to: 1, transition: this.assumptions.single, runs: 1 },
+      { from: 12, to: 12, transition: this.assumptions.single/4.0, runs: 1 },
+      { from: 12, to: 13, transition: this.assumptions.single/2.0, runs: 1 },
+      { from: 12, to: 123, transition: this.assumptions.single/4.0+this.assumptions.walk, runs: 0 },
+      { from: 13, to: 12, transition: this.assumptions.single/2.0, runs: 1 },
+      { from: 13, to: 13, transition: this.assumptions.single/2.0, runs: 1 },
+      { from: 23, to: 1, transition: this.assumptions.single/2.0, runs: 2 },
+      { from: 23, to: 13, transition: this.assumptions.single/2.0, runs: 1 },
+      { from: 123, to: 12, transition: this.assumptions.single/2.0, runs: 2 },
+      { from: 123, to: 13, transition: this.assumptions.single/2.0, runs: 2 },
+      //double
+      { from: 0, to: 2, transition: this.assumptions.double, runs: 0 },
+      { from: 1, to: 2, transition: this.assumptions.double/2.0, runs: 1 },
+      { from: 1, to: 23, transition: this.assumptions.double/2.0, runs: 0 },
+      { from: 2, to: 2, transition: this.assumptions.double, runs: 1 },
+      { from: 3, to: 2, transition: this.assumptions.double, runs: 1 },
+      { from: 12, to: 2, transition: this.assumptions.double/2.0, runs: 2 },
+      { from: 12, to: 23, transition: this.assumptions.double/2.0, runs:  2 },
+      { from: 13, to: 2, transition: this.assumptions.double/2.0, runs: 2 },
+      { from: 13, to: 23, transition: this.assumptions.double/2.0, runs: 1 },
+      { from: 23, to: 2, transition: this.assumptions.double, runs: 2 },
+      { from: 123, to: 2, transition: this.assumptions.double/2.0, runs: 3 },
+      { from: 123, to: 23, transition: this.assumptions.double/2.0, runs: 2 },
+      //triple
+      { from: 0, to: 3, transition: this.assumptions.triple, runs: 0 },
+      { from: 1, to: 3, transition: this.assumptions.triple, runs: 1 },
+      { from: 2, to: 3, transition: this.assumptions.triple, runs: 1 },
+      { from: 3, to: 3, transition: this.assumptions.triple, runs: 1 },
+      { from: 12, to: 3, transition: this.assumptions.triple, runs: 2 },
+      { from: 13, to: 3, transition: this.assumptions.triple, runs: 2 },
+      { from: 23, to: 3, transition: this.assumptions.triple, runs: 2 },
+      { from: 123, to: 3, transition: this.assumptions.triple, runs: 3 },
+      //walk
+      { from: 2, to: 4, transition: this.assumptions.walk, runs: 0 },
+      { from: 3, to: 13, transition: this.assumptions.walk, runs: 0 },
+      { from: 13, to: 123, transition: this.assumptions.walk, runs: 0 },
+      { from: 23, to: 123, transition: this.assumptions.walk, runs: 0 },
+      { from: 123, to: 123, transition: this.assumptions.walk, runs: 1 },
+    ],
+  sacrifice:
+    [
+      //sacrifice bunt
+      { from: 1, to: 2, transition: this.assumptions.sacbunt, runs: 0 },
+      { from: 2, to: 3, transition: this.assumptions.sacbunt, runs: 0 },
+      { from: 3, to: 0, transition: this.assumptions.sacbunt, runs: 1 },
+      { from: 12, to: 13, transition: this.assumptions.sacbunt/2.0, runs: 0 },
+      { from: 12, to: 23, transition: this.assumptions.sacbunt/2.0, runs: 0 },
+      { from: 13, to: 1, transition: this.assumptions.sacbunt, runs: 1 },
+      { from: 23, to: 2, transition: this.assumptions.sacbunt/2.0, runs: 1 },
+      { from: 23, to: 3, transition: this.assumptions.sacbunt/2.0, runs: 1 },
+      { from: 123, to: 12, transition: this.assumptions.sacbunt/2.0, runs: 1 },
+      { from: 123, to: 13, transition: this.assumptions.sacbunt/2.0, runs: 1 }
+    ]
+};
 
-exports.transitions = [
-	{ index: [24,24], transition: 1.0, runs: [] },
+exports.outs = {
+  lessthan2:
+    [
+      { from: 0, to: 0, transition: outProbabilty(this.advance.noout.concat(this.advance.sacrifice), 0), runs: 0 },
+      { from: 1, to: 1, transition: outProbabilty(this.advance.noout.concat(this.advance.sacrifice), 1), runs: 0 },
+      { from: 2, to: 2, transition: outProbabilty(this.advance.noout.concat(this.advance.sacrifice), 2), runs: 0 },
+      { from: 3, to: 3, transition: outProbabilty(this.advance.noout.concat(this.advance.sacrifice), 3), runs: 0 },
+      { from: 12, to: 12, transition: outProbabilty(this.advance.noout.concat(this.advance.sacrifice), 12), runs: 0 },
+      { from: 13, to: 13, transition: outProbabilty(this.advance.noout.concat(this.advance.sacrifice), 13), runs: 0 },
+      { from: 23, to: 23, transition: outProbabilty(this.advance.noout.concat(this.advance.sacrifice), 23), runs: 0 },
+      { from: 123, to: 123, transition: outProbabilty(this.advance.noout.concat(this.advance.sacrifice), 123), runs: 0 },
+    ],
+  thirdout:
+    [
+      { from: 0, to: 0, transition: outProbabilty(this.advance.noout, 0), runs: 0 },
+      { from: 1, to: 0, transition: outProbabilty(this.advance.noout, 1), runs: 0 },
+      { from: 2, to: 0, transition: outProbabilty(this.advance.noout, 2), runs: 0 },
+      { from: 3, to: 0, transition: outProbabilty(this.advance.noout, 3), runs: 0 },
+      { from: 12, to: 0, transition: outProbabilty(this.advance.noout, 12), runs: 0 },
+      { from: 13, to: 0, transition: outProbabilty(this.advance.noout, 13), runs: 0 },
+      { from: 23, to: 0, transition: outProbabilty(this.advance.noout, 23), runs: 0 },
+      { from: 123, to: 0, transition: outProbabilty(this.advance.noout, 123), runs: 0 }
+    ],
+  endofgame: 
+    [
+      { from: 0, to: 0, transition: 1.0, runs: 0 }
+    ]
+};
 
-    //homerun
-    { index: [0, 0], transition: this.assumptions.homerun, runs: [] },
-    { index: [1, 0], transition: this.assumptions.homerun, runs: [] },
-    { index: [2, 0], transition: this.assumptions.homerun, runs: [] },
-    { index: [3, 0], transition: this.assumptions.homerun, runs: [] },
-    { index: [4, 0], transition: this.assumptions.homerun, runs: [] },
-    { index: [5, 0], transition: this.assumptions.homerun, runs: [] },
-    { index: [6, 0], transition: this.assumptions.homerun, runs: [] },
-    { index: [7, 0], transition: this.assumptions.homerun, runs: [] },
-    //single
-    { index: [0,1], transition: this.assumptions.single+this.assumptions.walk, runs: [] },
-    { index: [1,4], transition: 0.65*this.assumptions.single+this.assumptions.walk, runs: [] },
-    { index: [1,5], transition: 0.35*this.assumptions.single, runs: [] },
-    { index: [2,1], transition: 0.65*this.assumptions.single, runs: [] },
-    { index: [2,5], transition: 0.35*this.assumptions.single, runs: [] },
-    { index: [3,1], transition: this.assumptions.single, runs: [] },
-    { index: [4,4], transition: this.assumptions.single/4.0, runs: [] },
-    { index: [4,5], transition: this.assumptions.single/2.0, runs: [] },
-    { index: [4,7], transition: this.assumptions.single/4.0+this.assumptions.walk, runs: [] },
-    { index: [5,4], transition: this.assumptions.single/2.0, runs: [] },
-    { index: [5,5], transition: this.assumptions.single/2.0, runs: [] },
-    { index: [6,1], transition: this.assumptions.single/2.0, runs: [] },
-    { index: [6,5], transition: this.assumptions.single/2.0, runs: [] },
-    { index: [7,4], transition: this.assumptions.single/2.0, runs: [] },
-    { index: [7,5], transition: this.assumptions.single/2.0, runs: [] },
-    { index: [7,7], transition: this.assumptions.walk, runs: [] },
+exports.transitions = function () {
+  var availableOuts = [0, 1, 2];
+  var runnerStates = [0, 1, 2, 3, 12, 13, 23, 123];
+  var allTransitions = this.advance.noout.concat(this.advance.sacrifice).concat(this.outs.lessthan2).concat(this.thirdout).concat(this.endofgame);
 
-    //double
-    { index: [0,2], transition: this.assumptions.double, runs: [] },
-    { index: [1,2], transition: this.assumptions.double/2.0, runs: [] },
-    { index: [1,6], transition: this.assumptions.double/2.0, runs: [] },
-    { index: [2,2], transition: this.assumptions.double, runs: [] },
-    { index: [3,2], transition: this.assumptions.double, runs: [] },
-    { index: [4,2], transition: this.assumptions.double/2.0, runs: [] },
-    { index: [4,6], transition: this.assumptions.double/2.0, runs: [] },
-    { index: [5,2], transition: this.assumptions.double/2.0, runs: [] },
-    { index: [5,6], transition: this.assumptions.double/2.0, runs: [] },
-    { index: [6,2], transition: this.assumptions.double, runs: [] },
-    { index: [7,2], transition: this.assumptions.double/2.0, runs: [] },
-    { index: [7,6], transition: this.assumptions.double/2.0, runs: [] },
 
-    //triple
-    { index: [0, 3], transition: this.assumptions.triple, runs: [] },
-    { index: [1, 3], transition: this.assumptions.triple, runs: [] },
-    { index: [2, 3], transition: this.assumptions.triple, runs: [] },
-    { index: [3, 3], transition: this.assumptions.triple, runs: [] },
-    { index: [4, 3], transition: this.assumptions.triple, runs: [] },
-    { index: [5, 3], transition: this.assumptions.triple, runs: [] },
-    { index: [6, 3], transition: this.assumptions.triple, runs: [] },
-    { index: [7, 3], transition: this.assumptions.triple, runs: [] },
+  // availableOuts.map((oFrom) => runnerStates.map((rFrom) => 
+  //   {
+  //     availableOuts.map((oTo) => runnerStates.map((rTo) => 
+  //     {
+  //       allTransitions.filter((t) => t.from === ) ;
+  //     }));
+  //   }));
 
-    //walk
-    { index: [2,4], transition: this.assumptions.walk, runs: [] },
-    { index: [3,5], transition: this.assumptions.walk, runs: [] },
-    { index: [5,7], transition: this.assumptions.walk, runs: [] },
-    { index: [6,7], transition: this.assumptions.walk, runs: [] },
 
-    //sacrifice bunt
-    { index: [1,10], transition: this.assumptions.sacbunt, runs: [] },
-    { index: [2,11], transition: this.assumptions.sacbunt, runs: [] },
-    { index: [3,8], transition: this.assumptions.sacbunt, runs: [] },
-    { index: [4,13], transition: this.assumptions.sacbunt/2.0, runs: [] },
-    { index: [4,14], transition: this.assumptions.sacbunt/2.0, runs: [] },
-    { index: [5,9], transition: this.assumptions.sacbunt, runs: [] },
-    { index: [6,10], transition: this.assumptions.sacbunt/2.0, runs: [] },
-    { index: [6,11], transition: this.assumptions.sacbunt/2.0, runs: [] },
-    { index: [7,12], transition: this.assumptions.sacbunt/2.0, runs: [] },
-    { index: [7,13], transition: this.assumptions.sacbunt/2.0, runs: [] },
+  return undefined;
+};
 
-    //same pattern of probabilities 0 and 1 outs respectively
-];
-
-//curried function to calculate the rest prob for each row?
-function restProbabilty(t, n) {
-	return t.filter(function (i) { return i.index[row] === n; }).map(i => i.transition).reduce((p, c) => p + c, 0);
+// function to calculate the rest probability for each row, because row each row represents all possible outcomes of one at-bat.
+function outProbabilty(t, n) {
+	return 1.0 - t.filter(function (i) { return i.from === n; }).map(i => i.transition).reduce((p, c) => p + c, 0);
 }
 
-exports.outs = [
-    { index: [0,8], transition: restProbabilty(this.transitions, 0), runs: [] },
-    { index: [1,9], transition: restProbabilty(this.transitions, 1), runs: [] },
-    { index: [2,10], transition: restProbabilty(this.transitions, 2), runs: [] },
-    { index: [3,11], transition: restProbabilty(this.transitions, 3), runs: [] },
-    { index: [4,12], transition: restProbabilty(this.transitions, 4), runs: [] },
-    { index: [5,13], transition: restProbabilty(this.transitions, 5), runs: [] },
-    { index: [6,14], transition: restProbabilty(this.transitions, 6), runs: [] },
-    { index: [7,15], transition: restProbabilty(this.transitions, 7), runs: [] },
-    { index: [8,16], transition: restProbabilty(this.transitions, 8), runs: [] },
-    { index: [9,17], transition: restProbabilty(this.transitions, 9), runs: [] },
-    { index: [10,18], transition: restProbabilty(this.transitions, 10), runs: [] },
-    { index: [11,19], transition: restProbabilty(this.transitions, 11), runs: [] },
-    { index: [12,20], transition: restProbabilty(this.transitions, 12), runs: [] },
-    { index: [13,21], transition: restProbabilty(this.transitions, 13), runs: [] },
-    { index: [14,22], transition: restProbabilty(this.transitions, 14), runs: [] },
-    { index: [15,23], transition: restProbabilty(this.transitions, 15), runs: [] },
-    { index: [16,24], transition: restProbabilty(this.transitions, 16), runs: [] },
-    { index: [17,24], transition: restProbabilty(this.transitions, 17), runs: [] },
-    { index: [18,24], transition: restProbabilty(this.transitions, 18), runs: [] },
-    { index: [19,24], transition: restProbabilty(this.transitions, 19), runs: [] },
-    { index: [20,24], transition: restProbabilty(this.transitions, 20), runs: [] },
-    { index: [21,24], transition: restProbabilty(this.transitions, 21), runs: [] },
-    { index: [22,24], transition: restProbabilty(this.transitions, 22), runs: [] },
-    { index: [23,24], transition: restProbabilty(this.transitions, 23), runs: [] }
-];
+// Runnersposition and outs
+exports.convertBaseRunnersToIndex = function (gameState) {
+    return baseRunnerIndex(gameState.baseRunners) + 8 * gameState.outs;
+};
 
 // Represents the states or bases that the runners can occupy in a baseball game.
 // None = 0
@@ -133,9 +155,21 @@ exports.outs = [
 // FirstThird = 5
 // SecondThird = 6
 // FirstSecondThird = 7
+function baseRunnerIndex (stringRepresentation) {
+    switch(stringRepresentation) {
+        case 0: return 0;
+        case 1: return 1;
+        case 2: return 2;
+        case 3: return 3;
+        case 12: return 4;
+        case 13: return 5;
+        case 23: return 6;
+        case 123: return 7;
+    }
+}
 
 exports.runProbability = function (gameState, expectedRuns, maximumAtBats) {
-    var startingRow = gameState.baseRunners + 8 * gameState.outs;
+    var startingRow = gameState.outs == 3 ? 24 : gameState.baseRunners + 8 * gameState.outs;
 
     
     

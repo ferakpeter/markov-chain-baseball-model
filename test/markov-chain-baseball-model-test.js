@@ -17,7 +17,7 @@ describe('Baseball model transitions', function() {
   });
 
   it('should be retrievable', function() {
-    expect(model.transitions.find(function (i) { return i.index.join() === [24, 24].join() ; }).transition).to.equal(1.0);
+    expect(model.transitions[24][24].transition).to.equal(1.0);
   });
 });
 
