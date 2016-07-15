@@ -13,6 +13,10 @@ exports.assumptions = {
     maxAtBats: 18
 };
 
+// index [row, column]
+var row = 0;
+var column = 1;
+
 exports.transitions = [
 	{ index: [24,24], transition: 1.0, runs: [] },
 
@@ -90,32 +94,50 @@ exports.transitions = [
 
 //curried function to calculate the rest prob for each row?
 function restProbabilty(t, n) {
-	return t.filter(function (i) { return i.index[1] === n; }).reduce((prev, curr) => prev + curr);
+	return t.filter(function (i) { return i.index[row] === n; }).map(i => i.transition).reduce((p, c) => p + c, 0);
 }
 
 exports.outs = [
-    { index: [0,8], transition: this.transitions.filter(function (i) { return i.index[1] === 0; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [1,9], transition: this.transitions.filter(function (i) { return i.index[1] === 1; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [2,10], transition: this.transitions.filter(function (i) { return i.index[1] === 2; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [3,11], transition: this.transitions.filter(function (i) { return i.index[1] === 3; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [4,12], transition: this.transitions.filter(function (i) { return i.index[1] === 4; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [5,13], transition: this.transitions.filter(function (i) { return i.index[1] === 5; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [6,14], transition: this.transitions.filter(function (i) { return i.index[1] === 6; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [7,15], transition: this.transitions.filter(function (i) { return i.index[1] === 7; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [8,16], transition: this.transitions.filter(function (i) { return i.index[1] === 8; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [9,17], transition: this.transitions.filter(function (i) { return i.index[1] === 9; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [10,18], transition: this.transitions.filter(function (i) { return i.index[1] === 10; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [11,19], transition: this.transitions.filter(function (i) { return i.index[1] === 11; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [12,20], transition: this.transitions.filter(function (i) { return i.index[1] === 12; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [13,21], transition: this.transitions.filter(function (i) { return i.index[1] === 13; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [14,22], transition: this.transitions.filter(function (i) { return i.index[1] === 14; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [15,23], transition: this.transitions.filter(function (i) { return i.index[1] === 15; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [16,24], transition: this.transitions.filter(function (i) { return i.index[1] === 16; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [17,24], transition: this.transitions.filter(function (i) { return i.index[1] === 17; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [18,24], transition: this.transitions.filter(function (i) { return i.index[1] === 18; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [19,24], transition: this.transitions.filter(function (i) { return i.index[1] === 19; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [20,24], transition: this.transitions.filter(function (i) { return i.index[1] === 20; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [21,24], transition: this.transitions.filter(function (i) { return i.index[1] === 21; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [22,24], transition: this.transitions.filter(function (i) { return i.index[1] === 22; }).reduce((prev, curr) => prev + curr, 0), runs: [] },
-    { index: [23,24], transition: this.transitions.filter(function (i) { return i.index[1] === 23; }).reduce((prev, curr) => prev + curr, 0), runs: [] }
-]
+    { index: [0,8], transition: restProbabilty(this.transitions, 0), runs: [] },
+    { index: [1,9], transition: restProbabilty(this.transitions, 1), runs: [] },
+    { index: [2,10], transition: restProbabilty(this.transitions, 2), runs: [] },
+    { index: [3,11], transition: restProbabilty(this.transitions, 3), runs: [] },
+    { index: [4,12], transition: restProbabilty(this.transitions, 4), runs: [] },
+    { index: [5,13], transition: restProbabilty(this.transitions, 5), runs: [] },
+    { index: [6,14], transition: restProbabilty(this.transitions, 6), runs: [] },
+    { index: [7,15], transition: restProbabilty(this.transitions, 7), runs: [] },
+    { index: [8,16], transition: restProbabilty(this.transitions, 8), runs: [] },
+    { index: [9,17], transition: restProbabilty(this.transitions, 9), runs: [] },
+    { index: [10,18], transition: restProbabilty(this.transitions, 10), runs: [] },
+    { index: [11,19], transition: restProbabilty(this.transitions, 11), runs: [] },
+    { index: [12,20], transition: restProbabilty(this.transitions, 12), runs: [] },
+    { index: [13,21], transition: restProbabilty(this.transitions, 13), runs: [] },
+    { index: [14,22], transition: restProbabilty(this.transitions, 14), runs: [] },
+    { index: [15,23], transition: restProbabilty(this.transitions, 15), runs: [] },
+    { index: [16,24], transition: restProbabilty(this.transitions, 16), runs: [] },
+    { index: [17,24], transition: restProbabilty(this.transitions, 17), runs: [] },
+    { index: [18,24], transition: restProbabilty(this.transitions, 18), runs: [] },
+    { index: [19,24], transition: restProbabilty(this.transitions, 19), runs: [] },
+    { index: [20,24], transition: restProbabilty(this.transitions, 20), runs: [] },
+    { index: [21,24], transition: restProbabilty(this.transitions, 21), runs: [] },
+    { index: [22,24], transition: restProbabilty(this.transitions, 22), runs: [] },
+    { index: [23,24], transition: restProbabilty(this.transitions, 23), runs: [] }
+];
+
+// Represents the states or bases that the runners can occupy in a baseball game.
+// None = 0
+// First = 1
+// Second = 2
+// Third = 3
+// FirstSecond = 4
+// FirstThird = 5
+// SecondThird = 6
+// FirstSecondThird = 7
+
+exports.runProbability = function (gameState, expectedRuns, maximumAtBats) {
+    var startingRow = gameState.baseRunners + 8 * gameState.outs;
+
+    
+    
+    return 0.0;
+};

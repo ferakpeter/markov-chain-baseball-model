@@ -28,5 +28,6 @@
   "bugs": {
     "url": "https://github.com/ferakpeter/markov-chain-baseball-model/issues"
   },
-  "homepage": "https://github.com/ferakpeter/markov-chain-baseball-model#readme"
+  "homepage": "https://github.com/ferakpeter/markov-chain-baseball-model#readme",
+  "jshintConfig": { "esversion": 6 }
 }
