@@ -16,9 +16,9 @@ describe('Baseball model transitions', function() {
     expect(model.transitions).not.to.be.an('undefined');
   });
 
-  it('should be retrievable', function() {
-    expect(model.transitions[24][24].transition).to.equal(1.0);
-  });
+  // it('should ', function() {
+  //   expect().to.equal(1.0);
+  // });
 });
 
 describe('The baseball model', function() {
