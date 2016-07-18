@@ -1,6 +1,8 @@
 var expect = require('chai').expect;
 var model = require('../markov-chain-baseball-model');
 
+var initialGameState = { outs: 0, runners: 0 };
+
 describe('Baseball model assumptions', function() {
   it('must be defined', function() {
     expect(model.assumptions).not.to.be.an('undefined');
@@ -19,6 +21,12 @@ describe('Baseball model transitions', function() {
   // it('should ', function() {
   //   expect().to.equal(1.0);
   // });
+});
+
+describe('The baseball model', function() {
+  it('should provide the probabilty of changing from one state to another', function() {
+    expect(model.atbatProbability(initialGameState, { outs: 0, runners: 0 })).to.equal(model.assumptions.homerun);
+  });
 });
 
 describe('The baseball model', function() {

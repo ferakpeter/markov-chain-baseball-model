@@ -53,7 +53,7 @@ exports.runnerTransitions = {
       { from: 2, to: 2, transition: this.assumptions.double, runs: 1 },
       { from: 3, to: 2, transition: this.assumptions.double, runs: 1 },
       { from: 12, to: 2, transition: this.assumptions.double/2.0, runs: 2 },
-      { from: 12, to: 23, transition: this.assumptions.double/2.0, runs:  2 },
+      { from: 12, to: 23, transition: this.assumptions.double/2.0, runs: 2 },
       { from: 13, to: 2, transition: this.assumptions.double/2.0, runs: 2 },
       { from: 13, to: 23, transition: this.assumptions.double/2.0, runs: 1 },
       { from: 23, to: 2, transition: this.assumptions.double, runs: 2 },
@@ -93,7 +93,7 @@ exports.runnerTransitions = {
 
 // exports.outTransitions = function (transitions, endOfGame) {
 //   var restTransitions = toOuts < 2 ? runnerTransitions.concat(sacTransitions) : runnerTransitions;
-//   return this.assumptions.runnerStates.map((s) => 
+//   return this.assumptions.runnerStates.map((s) =>
 //     {
 //       return { from: s, to: toOuts < 2 ? s : 0, transitions: 1.0 - restTransitions.filter(i => i.from === s).map(i => i.transition).reduce((p, c) => p + c, 0), runs: 0 };
 //     });
@@ -122,31 +122,31 @@ exports.runnerTransitions = {
 //       { from: 23, to: 0, transition: outProbabilty(this.advance.noouts, 23), runs: 0 },
 //       { from: 123, to: 0, transition: outProbabilty(this.advance.noouts, 123), runs: 0 }
 //     ],
-//   endofgame: 
+//   endofgame:
 //     [
 //       { from: 0, to: 0, transition: 1.0, runs: 0 }
 //     ]
 // };
 
 exports.transitions = function () {
-  var countOutProbabilities = function (transitions, thirdout) {
-    return this.assumptions.runnerStates.map((s) => 
+  var countOutProbabilities = function (runnerStates, transitions, thirdout) {
+    return runnerStates.map((s) =>
       {
         return { from: s, to: thirdout ? 0 : s, transitions: 1.0 - transitions.filter(i => i.from === s).map(i => i.transition).reduce((p, c) => p + c, 0), runs: 0 };
       });
   };
 
     // var restTransitions = toOuts < 2 ? runnerTransitions.concat(sacTransitions) : runnerTransitions;
-  var sacOuts = countOutProbabilities(this.runnerTransitions.noouts.concat(this.runnerTransitions.sacrifice), false);
-  var lastOuts = countOutProbabilities(this.runnerTransitions.noouts, true);
+  var sacOuts = countOutProbabilities(this.assumptions.runnerStates, this.runnerTransitions.noouts.concat(this.runnerTransitions.sacrifice), false);
+  var lastOuts = countOutProbabilities(this.assumptions.runnerStates, this.runnerTransitions.noouts, true);
 
   var outTransitions = [
     { from: 0, to: 0, transitions: this.runnerTransitions.noouts },
-    { from: 0, to: 1, transitions: this.runnerTransitions.sacrifice.concat(sacOuts()) },
+    { from: 0, to: 1, transitions: this.runnerTransitions.sacrifice.concat(sacOuts) },
     { from: 1, to: 1, transitions: this.runnerTransitions.noouts },
-    { from: 1, to: 2, transitions: this.runnerTransitions.sacrifice.concat(sacOuts()) },
+    { from: 1, to: 2, transitions: this.runnerTransitions.sacrifice.concat(sacOuts) },
     { from: 2, to: 2, transitions: this.runnerTransitions.noouts },
-    { from: 2, to: 3, transitions: lastOuts() },
+    { from: 2, to: 3, transitions: lastOuts },
     { from: 3, to: 3, transitions: this.endofgame }
   ];
 
@@ -158,11 +158,11 @@ exports.transitions = function () {
   // var matrix = math.matrix([25, 25]);
   // matrix.map(function (value, index, matrix) {
   //   //index: row, column
-    
+
   // });
-  // availableOuts.map((oFrom) => runnerStates.map((rFrom) => 
+  // availableOuts.map((oFrom) => runnerStates.map((rFrom) =>
   //   {
-  //     availableOuts.map((oTo) => runnerStates.map((rTo) => 
+  //     availableOuts.map((oTo) => runnerStates.map((rTo) =>
   //     {
   //       allTransitions.filter((t) => t.from === ) ;
   //     }));
@@ -175,9 +175,9 @@ exports.transitions = function () {
 
 
 // Runnersposition and outs
-exports.convertBaseRunnersToIndex = function (gameState) {
-    return baseRunnerIndex(gameState.baseRunners) + 8 * gameState.outs;
-};
+// exports.convertBaseRunnersToIndex = function (gameState) {
+//     return baseRunnerIndex(gameState.baseRunners) + 8 * gameState.outs;
+// };
 
 // Represents the states or bases that the runners can occupy in a baseball game.
 // None = 0
@@ -188,27 +188,32 @@ exports.convertBaseRunnersToIndex = function (gameState) {
 // FirstThird = 5
 // SecondThird = 6
 // FirstSecondThird = 7
-function baseRunnerIndex (stringRepresentation) {
-    switch(stringRepresentation) {
-        case 0: return 0;
-        case 1: return 1;
-        case 2: return 2;
-        case 3: return 3;
-        case 12: return 4;
-        case 13: return 5;
-        case 23: return 6;
-        case 123: return 7;
-    }
-}
+// function baseRunnerIndex (stringRepresentation) {
+//     switch(stringRepresentation) {
+//         case 0: return 0;
+//         case 1: return 1;
+//         case 2: return 2;
+//         case 3: return 3;
+//         case 12: return 4;
+//         case 13: return 5;
+//         case 23: return 6;
+//         case 123: return 7;
+//     }
+// }
 
 exports.vectorTransition = function(initialState) {
-  return math.multiply(initialState, this.transitions);
+  return math.multiply(initialState, this.transitions());
+};
+
+exports.atbatProbability = function(gameState, expectedGameState) {
+  var possibleStates = this.transitions().filter(t => t.from === gameState.outs && t.to === expectedGameState.outs).map(t => t.transitions)[0];
+  return possibleStates === 'undefined' ? 0.0 : possibleStates.filter(r => r.from === gameState.runners && r.to === expectedGameState.runners).map(r => r.transition)[0];
 };
 
 exports.runProbability = function (gameState, expectedRuns, maximumAtBats) {
     var startingRow = gameState.outs == 3 ? 24 : gameState.baseRunners + 8 * gameState.outs;
 
-    
-    
+
+
     return 0.0;
 };
