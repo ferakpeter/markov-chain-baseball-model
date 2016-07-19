@@ -27,6 +27,14 @@ describe('The baseball model', function() {
   it('should provide the probabilty of changing from one state to another', function() {
     expect(model.atbatProbability(initialGameState, { outs: 0, runners: 0 })).to.equal(model.assumptions.homerun);
   });
+
+  it('should provide a column from the matrix for a given expected gameState as a vector', function() {
+    expect(model.extractTransitionsByExpectedState(initialGameState).length).to.equal(25);
+  });
+
+  it('should provide a row from the matrix for a given gameState as a vector', function() {
+    expect(model.extractTransitionsByGameState(initialGameState).length).to.equal(25);
+  });
 });
 
 describe('The baseball model', function() {

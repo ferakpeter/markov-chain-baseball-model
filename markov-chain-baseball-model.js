@@ -12,7 +12,7 @@ exports.assumptions = {
     innings: 9,
     maxScore: 40,
     maxAtBats: 18,
-    availableOuts: [0, 1, 2, 3],
+    availableOuts: [0, 1, 2],
     runnerStates: [0, 1, 2, 3, 12, 13, 23, 123]
 };
 
@@ -91,43 +91,6 @@ exports.runnerTransitions = {
     ]
 };
 
-// exports.outTransitions = function (transitions, endOfGame) {
-//   var restTransitions = toOuts < 2 ? runnerTransitions.concat(sacTransitions) : runnerTransitions;
-//   return this.assumptions.runnerStates.map((s) =>
-//     {
-//       return { from: s, to: toOuts < 2 ? s : 0, transitions: 1.0 - restTransitions.filter(i => i.from === s).map(i => i.transition).reduce((p, c) => p + c, 0), runs: 0 };
-//     });
-// };
-
-
-//   lessthan2:
-//     [
-//       { from: 0, to: 0, transition: outProbabilty(this.advance.noouts.concat(this.advance.sacrifice), 0), runs: 0 },
-//       { from: 1, to: 1, transition: outProbabilty(this.advance.noouts.concat(this.advance.sacrifice), 1), runs: 0 },
-//       { from: 2, to: 2, transition: outProbabilty(this.advance.noouts.concat(this.advance.sacrifice), 2), runs: 0 },
-//       { from: 3, to: 3, transition: outProbabilty(this.advance.noouts.concat(this.advance.sacrifice), 3), runs: 0 },
-//       { from: 12, to: 12, transition: outProbabilty(this.advance.noouts.concat(this.advance.sacrifice), 12), runs: 0 },
-//       { from: 13, to: 13, transition: outProbabilty(this.advance.noouts.concat(this.advance.sacrifice), 13), runs: 0 },
-//       { from: 23, to: 23, transition: outProbabilty(this.advance.noouts.concat(this.advance.sacrifice), 23), runs: 0 },
-//       { from: 123, to: 123, transition: outProbabilty(this.advance.noouts.concat(this.advance.sacrifice), 123), runs: 0 },
-//     ],
-//   thirdout:
-//     [
-//       { from: 0, to: 0, transition: outProbabilty(this.advance.noouts, 0), runs: 0 },
-//       { from: 1, to: 0, transition: outProbabilty(this.advance.noouts, 1), runs: 0 },
-//       { from: 2, to: 0, transition: outProbabilty(this.advance.noouts, 2), runs: 0 },
-//       { from: 3, to: 0, transition: outProbabilty(this.advance.noouts, 3), runs: 0 },
-//       { from: 12, to: 0, transition: outProbabilty(this.advance.noouts, 12), runs: 0 },
-//       { from: 13, to: 0, transition: outProbabilty(this.advance.noouts, 13), runs: 0 },
-//       { from: 23, to: 0, transition: outProbabilty(this.advance.noouts, 23), runs: 0 },
-//       { from: 123, to: 0, transition: outProbabilty(this.advance.noouts, 123), runs: 0 }
-//     ],
-//   endofgame:
-//     [
-//       { from: 0, to: 0, transition: 1.0, runs: 0 }
-//     ]
-// };
-
 exports.transitions = function () {
   var countOutProbabilities = function (runnerStates, transitions, thirdout) {
     return runnerStates.map((s) =>
@@ -140,6 +103,8 @@ exports.transitions = function () {
   var sacOuts = countOutProbabilities(this.assumptions.runnerStates, this.runnerTransitions.noouts.concat(this.runnerTransitions.sacrifice), false);
   var lastOuts = countOutProbabilities(this.assumptions.runnerStates, this.runnerTransitions.noouts, true);
 
+  var endofgame = [ { from: 0, to: 0, transition: 1.0, runs: 0 } ];
+
   var outTransitions = [
     { from: 0, to: 0, transitions: this.runnerTransitions.noouts },
     { from: 0, to: 1, transitions: this.runnerTransitions.sacrifice.concat(sacOuts) },
@@ -147,26 +112,17 @@ exports.transitions = function () {
     { from: 1, to: 2, transitions: this.runnerTransitions.sacrifice.concat(sacOuts) },
     { from: 2, to: 2, transitions: this.runnerTransitions.noouts },
     { from: 2, to: 3, transitions: lastOuts },
-    { from: 3, to: 3, transitions: this.endofgame }
+    { from: 3, to: 3, transitions: endofgame }
   ];
 
-
-
-
-  // var allTransitions = this.advance.noout.concat(this.advance.sacrifice).concat(this.outs.lessthan2).concat(this.thirdout).concat(this.endofgame);
-
-  // var matrix = math.matrix([25, 25]);
-  // matrix.map(function (value, index, matrix) {
-  //   //index: row, column
-
-  // });
-  // availableOuts.map((oFrom) => runnerStates.map((rFrom) =>
-  //   {
-  //     availableOuts.map((oTo) => runnerStates.map((rTo) =>
-  //     {
-  //       allTransitions.filter((t) => t.from === ) ;
-  //     }));
-  //   }));
+  var result = [];
+  this.assumptions.availableOuts.forEach(o => {
+    this.assumptions.runnerStates.forEach(r => {
+      result.push(this.atbatProbability({ outs: o, runners: r }, expectedGameState));
+    });
+  });
+  // add third out
+  result.push(this.atbatProbability({ outs: 3, runners: 0 }, expectedGameState));
 
 
   return outTransitions;
@@ -207,11 +163,36 @@ exports.vectorTransition = function(initialState) {
 
 exports.atbatProbability = function(gameState, expectedGameState) {
   var possibleStates = this.transitions().filter(t => t.from === gameState.outs && t.to === expectedGameState.outs).map(t => t.transitions)[0];
-  return possibleStates === 'undefined' ? 0.0 : possibleStates.filter(r => r.from === gameState.runners && r.to === expectedGameState.runners).map(r => r.transition)[0];
+  var resultingState = possibleStates === undefined ? 0.0 : possibleStates.filter(r => r.from === gameState.runners && r.to === expectedGameState.runners).map(r => r.transition)[0];
+  return resultingState === undefined ? 0.0 : resultingState;
+};
+
+exports.extractTransitionsByExpectedState = function(expectedGameState) {
+  var result = [];
+  this.assumptions.availableOuts.forEach(o => {
+    this.assumptions.runnerStates.forEach(r => {
+      result.push(this.atbatProbability({ outs: o, runners: r }, expectedGameState));
+    });
+  });
+  // add third out
+  result.push(this.atbatProbability({ outs: 3, runners: 0 }, expectedGameState));
+  return result;
+};
+
+exports.extractTransitionsByGameState = function(gameState) {
+  var result = [];
+  this.assumptions.availableOuts.forEach(o => { 
+    this.assumptions.runnerStates.forEach(r => { 
+      result.push(this.atbatProbability(gameState, { outs: o, runners: r }));
+    });
+  });
+  // add third out
+  result.push(this.atbatProbability(gameState, { outs: 3, runners: 0 }));
+  return result;
 };
 
 exports.runProbability = function (gameState, expectedRuns, maximumAtBats) {
-    var startingRow = gameState.outs == 3 ? 24 : gameState.baseRunners + 8 * gameState.outs;
+    // var startingRow = gameState.outs == 3 ? 24 : gameState.baseRunners + 8 * gameState.outs;
 
 
 
