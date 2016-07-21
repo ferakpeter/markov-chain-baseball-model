@@ -13,7 +13,12 @@ exports.assumptions = {
     maxScore: 40,
     maxAtBats: 18,
     availableOuts: [0, 1, 2],
-    runnerStates: [0, 1, 2, 3, 12, 13, 23, 123]
+    runnerStates: [0, 1, 2, 3, 12, 13, 23, 123],
+    allStates: function() {
+      return this.availableOuts.map(o => { 
+        return this.runnerStates.map(r => { return { outs: o, runners: r }; });
+                        }).reduce((p,c) => p.concat(c)).concat({ outs: 3, runners: 0 }); // add third out
+    }
 };
 
 // Definition of all Markov transitions without producing an out
@@ -91,110 +96,83 @@ exports.runnerTransitions = {
     ]
 };
 
-exports.transitions = function () {
-  var countOutProbabilities = function (runnerStates, transitions, thirdout) {
-    return runnerStates.map((s) =>
-      {
-        return { from: s, to: thirdout ? 0 : s, transitions: 1.0 - transitions.filter(i => i.from === s).map(i => i.transition).reduce((p, c) => p + c, 0), runs: 0 };
-      });
-  };
+function countOutProbabilities (runnerStates, transitions, thirdout) {
+  return runnerStates.map((s) =>
+    {
+      return { from: s, to: thirdout ? 0 : s, transition: 1.0 - transitions.filter(i => i.from === s).map(i => i.transition).reduce((p, c) => p + c, 0), runs: 0 };
+    });
+}
 
-    // var restTransitions = toOuts < 2 ? runnerTransitions.concat(sacTransitions) : runnerTransitions;
-  var sacOuts = countOutProbabilities(this.assumptions.runnerStates, this.runnerTransitions.noouts.concat(this.runnerTransitions.sacrifice), false);
-  var lastOuts = countOutProbabilities(this.assumptions.runnerStates, this.runnerTransitions.noouts, true);
-
-  var endofgame = [ { from: 0, to: 0, transition: 1.0, runs: 0 } ];
-
-  var outTransitions = [
+exports.outTransitions = [
     { from: 0, to: 0, transitions: this.runnerTransitions.noouts },
-    { from: 0, to: 1, transitions: this.runnerTransitions.sacrifice.concat(sacOuts) },
+    { from: 0, to: 1, transitions: this.runnerTransitions.sacrifice.concat(countOutProbabilities(this.assumptions.runnerStates, this.runnerTransitions.noouts.concat(this.runnerTransitions.sacrifice), false)) },
     { from: 1, to: 1, transitions: this.runnerTransitions.noouts },
-    { from: 1, to: 2, transitions: this.runnerTransitions.sacrifice.concat(sacOuts) },
+    { from: 1, to: 2, transitions: this.runnerTransitions.sacrifice.concat(countOutProbabilities(this.assumptions.runnerStates, this.runnerTransitions.noouts.concat(this.runnerTransitions.sacrifice), false)) },
     { from: 2, to: 2, transitions: this.runnerTransitions.noouts },
-    { from: 2, to: 3, transitions: lastOuts },
-    { from: 3, to: 3, transitions: endofgame }
+    { from: 2, to: 3, transitions: countOutProbabilities(this.assumptions.runnerStates, this.runnerTransitions.noouts, true) },
+    { from: 3, to: 3, transitions: [ { from: 0, to: 0, transition: 1.0, runs: 0 } ] }
   ];
 
-  var result = [];
-  this.assumptions.availableOuts.forEach(o => {
-    this.assumptions.runnerStates.forEach(r => {
-      result.push(this.atbatProbability({ outs: o, runners: r }, expectedGameState));
+exports.model = function (assumptions, outTransitions) {
+  var atbatProbability = function(transitions, gameState, expectedGameState) {
+    var possibleStates = transitions.filter(t => t.from === gameState.outs && t.to === expectedGameState.outs).map(t => t.transitions)[0];
+    var resultingState = possibleStates === undefined ? 0.0 : possibleStates.filter(r => r.from === gameState.runners && r.to === expectedGameState.runners).map(r => r.transition)[0];
+    return resultingState === undefined ? 0.0 : resultingState;
+  };
+
+  var runTransitions = function(f) {
+    return outTransitions.map(o => {
+      return { from: o.from, to: o.to, transitions: o.transitions.filter(f) };
     });
-  });
-  // add third out
-  result.push(this.atbatProbability({ outs: 3, runners: 0 }, expectedGameState));
+  };
 
+  var buildMatrix = function(f) {
+    return assumptions.allStates().map(from => {
+      return assumptions.allStates().map(to => {
+        return atbatProbability(runTransitions(f), from, to);
+      });
+    });
+  };
 
-  return outTransitions;
+  var filterRuns = (r, t) => { return (t) => t.runs === r; };
+  return [ buildMatrix(filterRuns(0)), buildMatrix(filterRuns(1)), buildMatrix(filterRuns(2)), buildMatrix(filterRuns(3)), buildMatrix(filterRuns(4)) ];
 };
-
-
-
-// Runnersposition and outs
-// exports.convertBaseRunnersToIndex = function (gameState) {
-//     return baseRunnerIndex(gameState.baseRunners) + 8 * gameState.outs;
-// };
 
 // Represents the states or bases that the runners can occupy in a baseball game.
-// None = 0
-// First = 1
-// Second = 2
-// Third = 3
-// FirstSecond = 4
-// FirstThird = 5
-// SecondThird = 6
-// FirstSecondThird = 7
-// function baseRunnerIndex (stringRepresentation) {
-//     switch(stringRepresentation) {
-//         case 0: return 0;
-//         case 1: return 1;
-//         case 2: return 2;
-//         case 3: return 3;
-//         case 12: return 4;
-//         case 13: return 5;
-//         case 23: return 6;
-//         case 123: return 7;
-//     }
-// }
+function baseRunnerIndex (r) {
+    switch(r) {
+        case 0: return 0;
+        case 1: return 1;
+        case 2: return 2;
+        case 3: return 3;
+        case 12: return 4;
+        case 13: return 5;
+        case 23: return 6;
+        case 123: return 7;
+    }
+}
 
-exports.vectorTransition = function(initialState) {
-  return math.multiply(initialState, this.transitions());
-};
+function recursion(runs, atbats, m, r, s) {
+  // stopping condition
+  if (runs < 0 || atbats < 0) {
+    return math.zeros(25);
+    // starting condition
+  } else if (runs === r && atbats === 0) {
+    return s;
+    // main recursion
+  } else {
+    return [ math.multiply(recursion(runs, atbats - 1, m, r, s), m[0]), math.multiply(recursion(runs - 1, atbats - 1, m, r, s), m[1]),
+              math.multiply(recursion(runs - 2, atbats - 1, m, r, s), m[2]),
+              math.multiply(recursion(runs - 3, atbats - 1, m, r, s), m[3]),
+              math.multiply(recursion(runs - 4, atbats - 1, m, r, s), m[4]) ].reduce((p, c) => math.add(p, c));
+  }
+}
 
-exports.atbatProbability = function(gameState, expectedGameState) {
-  var possibleStates = this.transitions().filter(t => t.from === gameState.outs && t.to === expectedGameState.outs).map(t => t.transitions)[0];
-  var resultingState = possibleStates === undefined ? 0.0 : possibleStates.filter(r => r.from === gameState.runners && r.to === expectedGameState.runners).map(r => r.transition)[0];
-  return resultingState === undefined ? 0.0 : resultingState;
-};
-
-exports.extractTransitionsByExpectedState = function(expectedGameState) {
-  var result = [];
-  this.assumptions.availableOuts.forEach(o => {
-    this.assumptions.runnerStates.forEach(r => {
-      result.push(this.atbatProbability({ outs: o, runners: r }, expectedGameState));
-    });
-  });
-  // add third out
-  result.push(this.atbatProbability({ outs: 3, runners: 0 }, expectedGameState));
-  return result;
-};
-
-exports.extractTransitionsByGameState = function(gameState) {
-  var result = [];
-  this.assumptions.availableOuts.forEach(o => { 
-    this.assumptions.runnerStates.forEach(r => { 
-      result.push(this.atbatProbability(gameState, { outs: o, runners: r }));
-    });
-  });
-  // add third out
-  result.push(this.atbatProbability(gameState, { outs: 3, runners: 0 }));
-  return result;
-};
-
-exports.runProbability = function (gameState, expectedRuns, maximumAtBats) {
-    // var startingRow = gameState.outs == 3 ? 24 : gameState.baseRunners + 8 * gameState.outs;
-
-
-
-    return 0.0;
+exports.runProbability = function (gameState, expectedRuns, assumptions, outTransitions) {
+    var startingRow = gameState.outs == 3 ? 24 : baseRunnerIndex(gameState.runners) + 8 * gameState.outs;
+    var startingCondition = math.zeros(25);
+    startingCondition._data[startingRow] = 1.0;
+    var m = this.model(assumptions, outTransitions);
+    var result = recursion(expectedRuns, assumptions.maxAtBats, m, gameState.runs, startingCondition);
+    return result._data;
 };
