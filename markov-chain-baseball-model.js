@@ -15,7 +15,7 @@ exports.assumptions = {
     availableOuts: [0, 1, 2],
     runnerStates: [0, 1, 2, 3, 12, 13, 23, 123],
     allStates: function() {
-      return this.availableOuts.map(o => { 
+      return this.availableOuts.map(o => {
         return this.runnerStates.map(r => { return { outs: o, runners: r }; });
                         }).reduce((p,c) => p.concat(c)).concat({ outs: 3, runners: 0 }); // add third out
     }
@@ -135,44 +135,57 @@ exports.model = function (assumptions, outTransitions) {
   };
 
   var filterRuns = (r, t) => { return (t) => t.runs === r; };
-  return [ buildMatrix(filterRuns(0)), buildMatrix(filterRuns(1)), buildMatrix(filterRuns(2)), buildMatrix(filterRuns(3)), buildMatrix(filterRuns(4)) ];
-};
+    return [ buildMatrix(filterRuns(0)), buildMatrix(filterRuns(1)), buildMatrix(filterRuns(2)), buildMatrix(filterRuns(3)), buildMatrix(filterRuns(4)) ];
+  };
 
-// Represents the states or bases that the runners can occupy in a baseball game.
-function baseRunnerIndex (r) {
+  // Represents the states or bases that the runners can occupy in a baseball game.
+  function baseRunnerIndex (r) {
     switch(r) {
-        case 0: return 0;
-        case 1: return 1;
-        case 2: return 2;
-        case 3: return 3;
-        case 12: return 4;
-        case 13: return 5;
-        case 23: return 6;
-        case 123: return 7;
+      case 0: return 0;
+      case 1: return 1;
+      case 2: return 2;
+      case 3: return 3;
+      case 12: return 4;
+      case 13: return 5;
+      case 23: return 6;
+      case 123: return 7;
     }
-}
+  }
 
-function recursion(runs, atbats, m, r, s) {
-  // stopping condition
-  if (runs < 0 || atbats < 0) {
-    return math.zeros(25);
-    // starting condition
-  } else if (runs === r && atbats === 0) {
-    return s;
-    // main recursion
-  } else {
-    return [ math.multiply(recursion(runs, atbats - 1, m, r, s), m[0]), math.multiply(recursion(runs - 1, atbats - 1, m, r, s), m[1]),
-              math.multiply(recursion(runs - 2, atbats - 1, m, r, s), m[2]),
-              math.multiply(recursion(runs - 3, atbats - 1, m, r, s), m[3]),
-              math.multiply(recursion(runs - 4, atbats - 1, m, r, s), m[4]) ].reduce((p, c) => math.add(p, c));
+  function recursion(runs, atbats, m, r, s, c) {
+    // stopping condition
+    if (runs < 0 || atbats < 0) {
+      return math.zeros(25);
+      // starting condition
+    } else if (runs === r && atbats === 0) {
+      return s;
+      // main recursion
+    } else {
+      var cached = c.find(i => i.runs === runs && i.atbats === atbats);
+      if (cached !== undefined) {
+        return cached.value;
+      }
+      var result = [ math.multiply(recursion(runs, atbats - 1, m, r, s, c), m[0]), math.multiply(recursion(runs - 1, atbats - 1, m, r, s, c), m[1]),
+                math.multiply(recursion(runs - 2, atbats - 1, m, r, s, c), m[2]),
+                math.multiply(recursion(runs - 3, atbats - 1, m, r, s, c), m[3]),
+                math.multiply(recursion(runs - 4, atbats - 1, m, r, s, c), m[4]) ].reduce((p, c) => math.add(p, c));
+    c.push({ runs: runs, atbats: atbats, value: result });
+    return result;
   }
 }
 
-exports.runProbability = function (gameState, expectedRuns, assumptions, outTransitions) {
+exports.runProbability = function (gameState, expectedRuns, model, cache) {
     var startingRow = gameState.outs == 3 ? 24 : baseRunnerIndex(gameState.runners) + 8 * gameState.outs;
     var startingCondition = math.zeros(25);
     startingCondition._data[startingRow] = 1.0;
-    var m = this.model(assumptions, outTransitions);
-    var result = recursion(expectedRuns, assumptions.maxAtBats, m, gameState.runs, startingCondition);
+    var result = recursion(expectedRuns, this.assumptions.maxAtBats, model, gameState.runs, startingCondition, cache);
     return result._data;
-};
+}
+
+exports.runVector = function (gameState) {
+  var m = this.model(this.assumptions, this.outTransitions);
+  var c = [];
+  return math.range(0, this.assumptions.maxScore)._data.map((r) => {
+    return this.runProbability(gameState, r, m, c).reduce((p, c) => p + c);
+  });
+}
