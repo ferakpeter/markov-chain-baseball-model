@@ -1,17 +1,17 @@
 {
   "name": "markov-chain-baseball-model",
-  "version": "1.0.0",
+  "version": "0.9.0",
   "description": "Markov chain implementation with a state model for Baseball.",
   "main": "index.js",
   "dependencies": {
     "mathjs": "latest"
   },
   "devDependencies" : {
-    "mocha"  : "latest",
+    "mocha" : "latest",
     "chai" : "latest"
   },
   "scripts" : {
-    "test"         : "./node_modules/.bin/mocha"
+    "test" : "./node_modules/.bin/mocha"
   },
   "repository": {
     "type": "git",

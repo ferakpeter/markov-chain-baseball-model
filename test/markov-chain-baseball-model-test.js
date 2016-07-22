@@ -1,5 +1,5 @@
 var expect = require('chai').expect;
-var baseball = require('../markov-chain-baseball-model');
+var baseball = require('../lib/markov-chain-baseball-model');
 
 describe('Baseball model assumptions', function() {
   it('must be defined', function() {
