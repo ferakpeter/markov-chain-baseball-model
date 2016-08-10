@@ -2,9 +2,13 @@
   "name": "markov-chain-baseball-model",
   "version": "0.9.0",
   "description": "Markov chain implementation with a state model for Baseball.",
+  "bin": {
+    "baseball": "./lib/baseball-cli.js"
+  },
   "main": "index.js",
   "dependencies": {
-    "mathjs": "latest"
+    "mathjs": "latest",
+    "commander": "latest"
   },
   "devDependencies" : {
     "mocha" : "latest",
