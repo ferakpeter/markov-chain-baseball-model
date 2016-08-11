@@ -21,6 +21,7 @@ describe('The baseball model', function() {
     var i = { outs: 0, runners: 123, runs: 0 };
     var c = [];
     var m = baseball.model(baseball.assumptions, baseball.outTransitions);
+
     var result = baseball.runProbability(i, r, m, c);
     var totalProbability = result.reduce((p, c) => p + c);
     expect(totalProbability).to.be.above(0.0);
