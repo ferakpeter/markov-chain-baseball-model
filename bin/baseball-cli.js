@@ -4,19 +4,19 @@ var program = require('commander');
 
 program
   .arguments('<command>')
-  .option('-r, --runners <runners>', 'Available runner states: 0, 1, 2, 3, 12, 13, 23, 123')
+  .option('-b, --baserunners <baserunners>', 'Available runner states: 0, 1, 2, 3, 12, 13, 23, 123')
   .option('-o, --outs <outs>', 'Available outs: 0, 1, 2')
-  .option('-u, --runs <runs>', 'Current amount of runs within the half inning')
+  .option('-r, --runs <runs>', 'Current amount of runs within the half inning')
   .option('-e, --expected <expected>', 'Will sum the probabilities for the expected runs or more')
   .action(function (command) {
     if (command === 'vector') {
-      var userInput = { runs: parseInt(program.runs), runners: parseInt(program.runners), outs: parseInt(program.outs)};
+      var userInput = { runs: parseInt(program.runs), runners: parseInt(program.baserunners), outs: parseInt(program.outs)};
       console.log(userInput);
       var probabilities = baseball.runVector(userInput);
       console.log(probabilities);
       console.log("Sum: " + probabilities.reduce((a, b) => a + b) * 100 + "%");
     } else if (command === 'prob') {
-      var userInput = { runs: parseInt(program.runs), runners: parseInt(program.runners), outs: parseInt(program.outs)};
+      var userInput = { runs: parseInt(program.runs), runners: parseInt(program.baserunners), outs: parseInt(program.outs)};
       console.log(userInput);
       var probabilities = baseball.runVector(userInput);
       var modified = probabilities.splice(0, parseInt(program.expected));
