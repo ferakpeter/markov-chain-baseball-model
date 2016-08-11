@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-var baseball = require('./markov-chain-baseball-model.js');
+var baseball = require('../lib/markov-chain-baseball-model.js');
 var program = require('commander');
 
 program

@@ -3,7 +3,7 @@
   "version": "0.9.0",
   "description": "Markov chain implementation with a state model for Baseball.",
   "bin": {
-    "baseball": "./lib/baseball-cli.js"
+    "baseball": "./bin/baseball-cli.js"
   },
   "main": "index.js",
   "dependencies": {

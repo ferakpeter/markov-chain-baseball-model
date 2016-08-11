@@ -1,2 +1,3 @@
 'use strict';
-var baseball = require('./lib/baseball-cli.js');
+var baseball = require('./bin/baseball-cli.js');
+module.exports = baseball;
