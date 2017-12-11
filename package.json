@@ -7,15 +7,16 @@
   },
   "main": "index.js",
   "dependencies": {
-    "mathjs": "latest",
-    "commander": "latest"
+    "commander": "latest",
+    "empty-value": "^1.0.1",
+    "mathjs": "latest"
   },
-  "devDependencies" : {
-    "mocha" : "latest",
-    "chai" : "latest"
+  "devDependencies": {
+    "mocha": "latest",
+    "chai": "latest"
   },
-  "scripts" : {
-    "test" : "./node_modules/.bin/mocha"
+  "scripts": {
+    "test": "./node_modules/.bin/mocha"
   },
   "repository": {
     "type": "git",
@@ -36,5 +37,7 @@
     "url": "https://github.com/ferakpeter/markov-chain-baseball-model/issues"
   },
   "homepage": "https://github.com/ferakpeter/markov-chain-baseball-model#readme",
-  "jshintConfig": { "esversion": 6 }
+  "jshintConfig": {
+    "esversion": 6
+  }
 }
